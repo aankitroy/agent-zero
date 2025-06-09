@@ -1,30 +1,20 @@
 # Use the pre-built base image for A0
-# FROM agent-zero-base:local
-FROM frdel/agent-zero-base:latest
-
-# Check if the argument is provided, else throw an error
-ARG BRANCH
-RUN if [ -z "$BRANCH" ]; then echo "ERROR: BRANCH is not set!" >&2; exit 1; fi
-ENV BRANCH=$BRANCH
+FROM agent-zero-base:local
+# FROM frdel/agent-zero-base:latest
 
 # Copy contents of the project to /a0
-COPY ./fs/ /
+COPY ./docker/base/fs/ /
+COPY ./docker/run/fs/ /
 
-# pre installation steps
-RUN bash /ins/pre_install.sh $BRANCH
-
-# install A0
-RUN bash /ins/install_A0.sh $BRANCH
+# Install python requirements
+COPY ./requirements.txt /a0/requirements.txt
+RUN /opt/venv/bin/pip install -r /a0/requirements.txt
 
 # install additional software
-RUN bash /ins/install_additional.sh $BRANCH
-
-# cleanup repo and install A0 without caching, this speeds up builds
-ARG CACHE_DATE=none
-RUN echo "cache buster $CACHE_DATE" && bash /ins/install_A02.sh $BRANCH
+RUN bash /ins/install_additional.sh
 
 # post installation steps
-RUN bash /ins/post_install.sh $BRANCH
+RUN bash /ins/post_install.sh
 
 # Expose ports
 EXPOSE 22 80 9000-9009
@@ -32,4 +22,4 @@ EXPOSE 22 80 9000-9009
 RUN chmod +x /exe/initialize.sh /exe/run_A0.sh /exe/run_searxng.sh /exe/run_tunnel_api.sh
 
 # initialize runtime and switch to supervisord
-CMD ["/exe/initialize.sh", "$BRANCH"]
+CMD ["/exe/initialize.sh", "main"]
